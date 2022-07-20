@@ -1,5 +1,7 @@
 package org.Concordia;
 
+import com.healthmarketscience.rmiio.SimpleRemoteInputStream;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,12 +15,13 @@ public class RmiClient {
     public static void main(String[] args) throws FileNotFoundException {
         System.out.println("Starting the client");
         InputStream inputStream=new FileInputStream("src/main/resources/SampleFile.txt");
-        RemoteInputStream ris=new RemoteInputStream(inputStream);
+//        RemoteInputStream ris=new RemoteInputStream(inputStream);
         try
         {
             Registry registry= LocateRegistry.getRegistry();
             FileApiInterface server = (FileApiInterface) registry.lookup("FileService");
-            server.createFile("SampleFile.txt",ris);
+            SimpleRemoteInputStream istream=new SimpleRemoteInputStream(inputStream);
+            server.sendFile("SampleFile.txt",istream.export());
 
         } catch (RemoteException e) {
             System.out.println("Registry exception");
