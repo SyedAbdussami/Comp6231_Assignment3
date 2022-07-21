@@ -4,42 +4,35 @@ import com.healthmarketscience.rmiio.RemoteInputStream;
 import com.healthmarketscience.rmiio.RemoteInputStreamClient;
 import org.apache.commons.codec.digest.DigestUtils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class FileAPI implements FileApiInterface {
 
-    Map<String, File> directory = new HashMap<>();
+    Map<String, Path> directory = new HashMap<>();
 //    Map<String,> NodeDirectory
 
-    public void sendFile(String filename, RemoteInputStream input) throws RemoteException, IOException {
-        //genertaing the hash
-        String hash = DigestUtils.sha256Hex(filename);
-        String localTime = String.valueOf(java.time.LocalTime.now());
-        String fileHash = hash + localTime;
-
+    public void sendFile(String fileName, RemoteInputStream input) throws RemoteException, IOException {
         InputStream inputStream;
         FileOutputStream fos = null;
-        File serverFile;
         int chunk = 4096;
-        byte[] result = new byte[chunk];
-        int readBytes = 0;
-
+        byte[] buffer = new byte[chunk];
+        int readBytes = -1;
+        String text_file="src/main/resources/"+fileName+"_At_Master_"+fileHash(fileName)+".txt";
         try {
             inputStream = RemoteInputStreamClient.wrap(input);
-            serverFile = File.createTempFile("Temp", "txt");
-            fos = new FileOutputStream(serverFile);
-            do {
-                readBytes = inputStream.read(result);
-                if (readBytes > 0)
-                    fos.write(result, 0, readBytes);
-            } while (readBytes != -1);
-
+            Path textFilePath = Paths.get(text_file);
+            fos = new FileOutputStream(String.valueOf(Files.createFile(textFilePath)));
+            while ((readBytes=inputStream.read(buffer))!=-1){
+                //MPI  send to data nodes
+                //Either send the buffer array or the file chunk by converting it into file
+            }
             fos.flush();
         } catch (Exception e) {
             e.printStackTrace();
@@ -47,12 +40,6 @@ public class FileAPI implements FileApiInterface {
             if (fos != null)
                 fos.close();
         }
-
-
-//        input.read()
-//
-//
-//        // calculate hash
 //
 //        //actual file read
 //        while(input.available() > 0) {
@@ -68,16 +55,43 @@ public class FileAPI implements FileApiInterface {
 
     public void getFileData(String hash, RemoteOutputStream output) throws RemoteException, IOException {
         // the idea is similar
-
-
-        //
     }
 
-//    public ArrayList<Files> listFiles()throws IOException{
-//        //traverse the hashmap
-//
-//
-//    }
+     public ArrayList<Path> listFiles()throws IOException{
+        //traverse the hashmap
+         ArrayList<Path> fileList=new ArrayList<>();
+         for (Map.Entry<String,Path> entry : directory.entrySet()) {
+             System.out.println(entry.getKey()+" : "+entry.getValue());
+             fileList.add(entry.getValue());
+         }
+
+         return fileList;
+
+    }
+
+    public void deleteFile(String fileName) throws FileNotFoundException {
+        String fileHash=fileHash(fileName).substring(1,25);
+        boolean flag=false;
+        for (Map.Entry<String,Path> entry : directory.entrySet()) {
+          if(entry.getKey().contains(fileHash)){
+              flag=true;
+              break;
+          }
+        }
+        if(!flag){
+            throw new FileNotFoundException("File not found");
+        }
+        //MPI Delete Call
+    }
+
+    String fileHash(String fileName){
+        String localTime = String.valueOf(java.time.LocalTime.now());
+        String fileHash = DigestUtils.sha256Hex(fileName+localTime).substring(1,25);
+
+        System.out.println("File hash: "+fileHash);
+        return fileHash;
+    }
+
 
     // other API funcitons i.e. file info, lsit files, etc.
 }
