@@ -1,24 +1,30 @@
 package org.Concordia;
 
-import com.healthmarketscience.rmiio.SimpleRemoteInputStream;
-
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
+import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 
 public class RmiClient {
     public static void main(String[] args) throws FileNotFoundException {
         System.out.println("Starting the client");
-        try
-        {
-            Registry registry= LocateRegistry.getRegistry();
-            FileApiInterface server = (FileApiInterface) registry.lookup("FileService");
-            SimpleRemoteInputStream  istream=new SimpleRemoteInputStream(new FileInputStream("src/main/resources/SampleFile.txt"));
-            server.sendFile("SampleFile.txt",istream.export());
+        try {
+//            Registry registry= LocateRegistry.getRegistry();
+//            FileApiInterface server = (FileApiInterface) registry.lookup("FileService");
+            IFileApi server = (IFileApi) Naming.lookup("rmi://localhost/FileService");
+            System.out.println("Remote Object Found");
+            System.out.println(server);
+            File file = new File("src/main/resources/SampleFile.txt");
+            FileInputStream fis = new FileInputStream(file);
+            byte[] fileByteArray = fis.readAllBytes();
+            InputStream is = new ByteArrayInputStream(fileByteArray);
+            try (IRemoteInputStream fileData = (IRemoteInputStream) new RemoteInputStream(is)) {
+                String hash = server.sendFile(file.getName(), fileData, (int) file.length());
+                System.out.println("File hash: " + hash);
+                OutputStream out = new FileOutputStream("src/main/resources/OutputFile.txt");
+                IRemoteOutputStream outputStream = (IRemoteOutputStream) new RemoteOutputStream(out);
+                server.getFileData(hash, outputStream);
+            }
 
         } catch (RemoteException e) {
             System.out.println("Registry exception");
