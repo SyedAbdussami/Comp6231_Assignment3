@@ -9,7 +9,9 @@ public class MasterNode {
     static final int DEST = 1;
     public static void main(String[] args) {
         try {
-            FileAPI server = new FileAPI();
+            IFileApi server = new FileAPI();
+            RMIServer.start(6231);
+//            RMIServer.register(server);
             IFileApi stub = (IFileApi) UnicastRemoteObject.exportObject((IFileApi) server, 0);
             Registry registry = LocateRegistry.createRegistry(1099);
             registry.rebind("FileService", stub);

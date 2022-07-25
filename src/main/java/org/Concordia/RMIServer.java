@@ -53,7 +53,12 @@ public class RMIServer {
 
     public synchronized static <T extends Remote> void register(T obj) throws RemoteException {
         String name = obj.getClass().getSimpleName();
-        reg.rebind(name, UnicastRemoteObject.exportObject(obj, 0));
+        Remote r = obj;
+        try {
+            r = UnicastRemoteObject.exportObject(obj, 0); // try to export if not
+        }
+        catch (Exception e) {}
+        reg.rebind(name, r);
         System.out.println(String.format("OK %s registered", name));
     }
 
