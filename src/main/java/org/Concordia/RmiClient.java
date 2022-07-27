@@ -29,7 +29,10 @@ public class RmiClient {
                 OutputStream out = new FileOutputStream("src/main/resources/OutputFile.txt");
                 IRemoteOutputStream outputStream = (IRemoteOutputStream) new RemoteOutputStream(out);
                 server.getFileData("SampleFile.txt", outputStream);
+                System.out.println("File downloaded at outputfile.txt");
             }
+            System.out.println("Deleting file chunks at data nodes");
+            server.deleteFile("SampleFile.txt");
 
         } catch (RemoteException e) {
             System.out.println("Registry exception");
